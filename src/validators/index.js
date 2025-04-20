@@ -27,6 +27,21 @@ const userRegistrationValidator = () => {
 //     .matches(/\d/).withMessage("Password must contain a number")
 //     .matches(/[@$!%*?&]/).withMessage("Password must contain a special character")
 
+const resendVerificationEmailValidator = () => {
+    return [
+        body("email")
+            .trim()
+            .notEmpty().withMessage("Email is requrired")
+            .isEmail().withMessage("Email is invalid"),
+        body("username")
+            .trim()
+            .notEmpty().withMessage("Username is required"),
+        body("oldVerificationToken")
+            .trim()
+            .notEmpty().withMessage("Old Verification Token is requried")
+    ]
+}
+
 const userLoginValidator = () => {
     return [
         body("email")
@@ -41,4 +56,4 @@ const userLoginValidator = () => {
     ]
 }
 
-export {userRegistrationValidator, userLoginValidator}
+export {userRegistrationValidator, userLoginValidator, resendVerificationEmailValidator}
