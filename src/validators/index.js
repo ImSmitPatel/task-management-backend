@@ -1,4 +1,4 @@
-import {body} from "express-validator"
+import {body, check, oneOf} from "express-validator"
 
 const userRegistrationValidator = () => {
     console.log("userRegistrationValidator run")
@@ -44,14 +44,17 @@ const resendVerificationEmailValidator = () => {
 
 const userLoginValidator = () => {
     return [
-        body("email")
-            .trim()
-            .notEmpty().withMessage("Email is required")
-            .isEmail().withMessage("Email is invalid"),
-        body("username")
-            .trim()
-            .notEmpty().withMessage("Username is required"),
-        body("password")
+        oneOf([
+            check("nickname")
+                .trim()
+                .notEmpty().withMessage("nickname is required")
+                .isEmail().withMessage("nickname is invalid"),
+            check("nickname")
+                .trim()
+                .notEmpty().withMessage("nickname is required")
+                .isLength({min: 3}).withMessage("nickname should be atleast 3 char")
+        ]),
+        check("password")
             .notEmpty().withMessage("Password is required")
     ]
 }
