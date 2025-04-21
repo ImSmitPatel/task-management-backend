@@ -11,9 +11,6 @@ const registerUser = asyncHandler(async (req, res) => {
     // get user data
     const {email, username, fullname, password} = req.body;
 
-    console.log(email, username, fullname, password);
-    
-
     // validation
     // Used middleware for validation
      
@@ -58,6 +55,8 @@ const registerUser = asyncHandler(async (req, res) => {
         subject: "Verification Email",
         mailGenContent: emailVerificationMailGenContent(username, verificationUrl)
     })
+    
+    console.log("User Registered. Verification Email sent", user.email);
 
     // send success response
     return res.status(201).json(new ApiResponse(201, { username: username, email: email }, "Registration successful. Please check your email."));
@@ -86,6 +85,8 @@ const verifyEmail = asyncHandler(async (req, res) => {
     user.emailVerificationExpiry = undefined;
 
     await user.save();
+
+    console.log("Email verified", user.email);
 
     return res.status(201).json(new ApiResponse(200, {}, "User Verified"))
 });
@@ -125,13 +126,13 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     // send verification email
     const verificationUrl = `http://localhost:8000/api/v1/auth/verify/${unHashedToken}/${email}`;
 
-    console.log(verificationUrl);
-
     await sendMail({
         email,
         subject: "Verification Email",
         mailGenContent: emailVerificationMailGenContent(username, verificationUrl)
     })
+
+    console.log("Resent Verification Email", user.email);
 
     // send success response
     return res.status(201).json(new ApiResponse(201, { username: username, email: email }, "Verification token re-sent successfully. Please check your email."));
