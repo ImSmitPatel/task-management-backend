@@ -4,6 +4,7 @@ import {ApiError} from "../utils/api-error.js";
 import {ApiResponse} from "../utils/api-response.js";
 import {sendMail, emailVerificationMailGenContent} from "../utils/mail.js";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -92,7 +93,42 @@ const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
+    const {nickname, password} = req.body;
+
+    const user = await User.findOne({
+        $or: [{email: nickname}, {username : nickname}]
+    });
+
+    if(!user) {
+        return res.status(401).json(new ApiError(400, "Invalid Credentials"))
+    }
+
+    const passwordMatch = user.isPasswordCorrect(password);
+
+    if(!passwordMatch) {
+        return res.status(401).json(new ApiError(400, "Invalid Credentials"))
+    }
+
+    if(!user.isEmailVerified){
+        res.status(400).json(new ApiError(400, "Please Verify Email"))
+    }
+
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7d
+    }
+
+    res.cookie("refreshToken", refreshToken, cookieOptions)
+
+    res.status(200).json(new ApiResponse(200, {accessToken, refreshToken}, "Login endpoint reached Successfully"));
+
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -139,7 +175,23 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
+    const token = req.cookies?.refreshToken;
+
+    console.log("refreshToken Found: ", token ? "Yes" : "No")
+
+    if(!token) {
+        return res.status(401).json(new ApiError(401, "Unauthorized"))
+    }
+
+    const payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const user = await User.findById(payload._id);
+
+    if(!user) {
+        return res.status(403).json(new ApiError(403, "Forbidden Access"))
+    }
+
+    const accessToken = user.generateAccessToken();
+    res.status(200).json(new ApiResponse(200, {accessToken}, "Access token refreshed successfully"));
 });
 
 const forgotPasswordRequest = asyncHandler(async (req, res) => {
@@ -154,4 +206,4 @@ const getProfile = asyncHandler(async (req, res) => {
     const {email, username, password, role} = req.body;
 });
 
-export { registerUser, verifyEmail, resendVerificationEmail }
+export { registerUser, verifyEmail, resendVerificationEmail,  loginUser, refreshAccessToken }
