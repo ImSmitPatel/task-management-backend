@@ -132,7 +132,21 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-    const {email, username, password, role} = req.body;
+    const userID = req.user._id;
+
+    const user = await User.findOne({
+        _id: userID
+    })
+
+    if(!user) {
+        throw new ApiError(400, "Valid User not found")
+    }
+
+    user.refreshToken = undefined;
+    await user.save();
+
+    res.cookie("refreshToken", "", {});
+    res.status(200).json(new ApiResponse(200, {}, "Logout successful"));
 });
 
 const resendVerificationEmail = asyncHandler(async (req, res) => {
@@ -206,4 +220,4 @@ const getProfile = asyncHandler(async (req, res) => {
     const {email, username, password, role} = req.body;
 });
 
-export { registerUser, verifyEmail, resendVerificationEmail,  loginUser, refreshAccessToken }
+export { registerUser, verifyEmail, resendVerificationEmail,  loginUser, refreshAccessToken, logoutUser }
